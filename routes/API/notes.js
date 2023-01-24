@@ -3,7 +3,8 @@ const fs = require("fs");
 const util = require("util");
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
-const { v4: uuidy4 } = require('uuid');
+const { v4:uuidv4 } = require("uuid")
+
 
 const getNotes = () => {
   return readFile("db/db.json", "utf-8").then((rawNotes) =>
@@ -12,33 +13,32 @@ const getNotes = () => {
 };
 
 router.get("/", (req, res) => {
-  getNotes().then((notes) => res.json(notes));
+  getNotes().then((notes) => res.json(notes)).catch(err => res.status(500).json(err));
 });
 
 router.post("/", (req, res) => {
   const { title, text } = req.body;
-  const db = JSON.parse(fs.readFileSync('./db/db.json', (err) => {
-    if (err) throw err;
-    const item = {
-      id: uuidy4(),
-      title,
-      text,
-    }
-    db.push(item);
-    fs.writeFileSync('./db/db.json', JSON.stringify(db, null, 2));
-    }))
-  });
+  console.log(title, text)
+  getNotes().then(oldNotes => {
+    const newNote = { title, text, id: uuidv4()};
+    var newNotes = [...oldNotes, newNote];
+    writeFile("db/db.json", JSON.stringify(newNotes)).then(() => res.json({msg: "Okay"})).catch(err => res.status(500).json(err));
+  })
+});
 
 
-router.delete("/", (req, res) => {
-  const db = JSON.parse(fs.readFileSync('../db/db.json', (err) => {
-    if (err) console.log(err);
-    const newDb = db.filter((note) => {
-      return note.id !== req.params.id;
-    })
-    fs.writeFileSync('../db/db.json', JSON.stringify(newDb, null, 2));
-    res.json({message: `Deleted ${req.params.id}`})
-   }))
-  });
+router.delete("/:id", (req, res) => {
+  getNotes().then((notes) => {
+    const noteId = req.params.id;
+    console.log(notes)
+    console.log(noteId)
+    filteredNotes = notes.filter(note => note.id!== noteId)
+    console.log(filteredNotes)
+    writeFile("db/db.json", JSON.stringify(filteredNotes)).then(() => res.json({msg: "Okay"})).catch(err => res.status(500).json(err));
+  
+
+  })
+
+});
 
 module.exports = router;
